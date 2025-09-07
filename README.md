@@ -19,11 +19,11 @@ Features a **TUI menu** (ratatui), **friendly prompts** (dialoguer), colored **t
 
 ## Screenshots
 
-```
+
 ![Menu](https://github.com/user-attachments/assets/9d005a03-ccb4-42f1-b531-15801e3675c8)
 ![Creating A Task](https://github.com/user-attachments/assets/be0fbb58-5475-48b3-be77-291c5e0d6bce)
 ![Table Of Tasks](https://github.com/user-attachments/assets/20e35548-2030-4421-a41d-56baebce51d6)
-```
+
 
 ---
 
