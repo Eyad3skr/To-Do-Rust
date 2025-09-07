@@ -11,7 +11,7 @@ Features a **TUI menu** (ratatui), **friendly prompts** (dialoguer), colored **t
 - List tasks in a formatted table with colored statuses
 - Update task status (`Todo` / `InProgress` / `Done`)
 - Remove tasks by ID
-- Auto-save & (load tasks soon) from `tasks.json`
+- Auto-save & load tasks from `tasks.json`
 - TUI menu hotkeys: `1–6`, `q` to quit
 - *(Windows optional)* App icon embedding & non-resizable console window
 
@@ -84,7 +84,7 @@ Tasks are stored as JSON at `./tasks.json` (working directory).
 
 - After **add / update / remove**, the app you can save back to `tasks.json`.
 
-- **Coming Soon:** On startup, the app loads `tasks.json` if it exists.
+- On startup, the app loads `tasks.json` if it exists to ensure data persistency.
 
 ---
 
