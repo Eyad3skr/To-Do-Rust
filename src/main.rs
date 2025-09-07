@@ -426,6 +426,44 @@ fn maybe_relaunch_in_terminal() -> bool {
     }
 }
 
+const TASKS_FILE: &str = "tasks.json";
+
+fn load_tasks() -> Vec<Task> {
+    match std::fs::read_to_string(TASKS_FILE) {
+        Ok(s) if !s.trim().is_empty() => {
+            match serde_json::from_str::<Vec<Task>>(&s) {
+                Ok(v) => v,
+                Err(e) => {
+                    eprintln!("Could not parse {TASKS_FILE}: {e}. Starting empty.");
+                    Vec::new()
+                }
+            }
+        }
+        Ok(_) => Vec::new(), // empty file
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Vec::new(),
+        Err(e) => {
+            eprintln!("Could not read {TASKS_FILE}: {e}. Starting empty.");
+            Vec::new()
+        }
+    }
+}
+
+fn save_tasks(tasks: &[Task]) {
+    // Write atomically: to a temp file, then rename
+    let tmp = format!("{TASKS_FILE}.tmp");
+    match serde_json::to_string_pretty(tasks) {
+        Ok(json) => {
+            if let Err(e) = std::fs::write(&tmp, json) {
+                eprintln!("Failed to write temp file: {e}");
+                return;
+            }
+            if let Err(e) = std::fs::rename(&tmp, TASKS_FILE) {
+                eprintln!("Failed to replace {TASKS_FILE}: {e}");
+            }
+        }
+        Err(e) => eprintln!("Failed to serialize tasks: {e}"),
+    }
+}
 
 
 // ===================
@@ -444,8 +482,9 @@ fn main() -> io::Result<()> {
     #[cfg(windows)]
     disable_resize();
 
-    let mut tasks: Vec<Task> = Vec::new();
-    let mut next_id: u32 = 1;
+    let mut tasks: Vec<Task> = load_tasks();
+    let mut next_id: u32 = tasks.iter().map(|t| t.id).max().unwrap_or(0) + 1;
+
 
     loop {
         // Show the TUI menu; returns a choice or None (q)
@@ -456,11 +495,12 @@ fn main() -> io::Result<()> {
                 if let Some(task) = prompt_add_task(next_id) {
                     add_task(&mut tasks, task);
                     next_id += 1;
+                    save_tasks(&tasks);
                 }
                 wait_enter();
             }
 
- MenuChoice::List => {
+             MenuChoice::List => {
                 if tasks.is_empty() {
                     println!("No tasks yet.");
                 } else {
@@ -474,6 +514,7 @@ fn main() -> io::Result<()> {
                     let theme = ColorfulTheme::default();
                     if prompt_confirm(&theme, &format!("Delete task #{}?", id)) {
                         remove_task(&mut tasks, id);
+                        save_tasks(&tasks);
                     } else {
                         println!("Cancelled.");
                     }
@@ -484,7 +525,10 @@ fn main() -> io::Result<()> {
             MenuChoice::Save => {
                 let json = serde_json::to_string_pretty(&tasks).unwrap();
                 match std::fs::write("tasks.json", json) {
-                    Ok(_) => println!("Saved to tasks.json"),
+                    Ok(_) => {
+                        save_tasks(&tasks);
+                        println!("Saved to {TASKS_FILE}");
+                    },
                     Err(e) => println!("Failed to save: {e}"),
                 }
                 wait_enter();
@@ -500,6 +544,7 @@ fn main() -> io::Result<()> {
                                 t.status = new_status.clone();
                                 found = true;
                                 println!("Task #{} updated.", id);
+                                save_tasks(&tasks);
                                 break;
                             }
                         }
@@ -514,6 +559,7 @@ fn main() -> io::Result<()> {
             MenuChoice::Exit => {
                 let theme = ColorfulTheme::default();
                 if prompt_confirm(&theme, "Quit?") {
+                    save_tasks(&tasks); // final safeguard
                     break;
                 }
             }
